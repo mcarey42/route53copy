@@ -1,5 +1,7 @@
 # route53copy, copies resource records between two AWS Route53 accounts
 
+This is not my (mcarey42) original work.  That honor belongs to andersjanmyr.  I updeted this to modern Go (1.19.4 at the time of this writing) and added some additional error checking and verbosity in session creation.  This works with the current AWS SDK as of this time.
+
 `route53copy` copies resource records from one AWS account to another. It
 creates a `ChangeResourceRecordSet` with `UPSERT` for all `ResourceRecord`s of
 the source account and sends it to the destination account.
