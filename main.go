@@ -9,17 +9,24 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/route53"
 )
 
 func connect(profile string) *route53.Route53 {
-	return route53.New(&aws.Config{
-		Region: aws.String("eu-west-1"),
-		Credentials: credentials.NewCredentials(&credentials.SharedCredentialsProvider{
-			Profile: profile,
-		}),
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable, // Must be set to enable
+		Profile:           profile,
 	})
+
+	if err != nil {
+		log.Printf("Error creating session.  err: %s\n", err)
+		return nil
+	} else {
+		log.Printf("Session created for profile %s.\n", profile)
+	}
+
+	return route53.New(sess)
 }
 
 func getHostedZone(service *route53.Route53, domain string) (*route53.HostedZone, error) {
@@ -40,6 +47,7 @@ func getResourceRecords(profile string, domain string) ([]*route53.ResourceRecor
 	service := connect(profile)
 	zone, err := getHostedZone(service, domain)
 	if err != nil {
+		log.Printf("Error getHostedZone.\n")
 		return nil, err
 	}
 
@@ -48,6 +56,7 @@ func getResourceRecords(profile string, domain string) ([]*route53.ResourceRecor
 	}
 	resp, err := service.ListResourceRecordSets(params)
 	if err != nil {
+		log.Printf("Error service.ListResourceRecordSets.\n")
 		return nil, err
 	}
 	return resp.ResourceRecordSets, nil
@@ -133,6 +142,7 @@ func main() {
 	domain := args[2]
 	recordSets, err := getResourceRecords(sourceProfile, domain)
 	if err != nil {
+		log.Printf("Error getResourceRecords.\n")
 		panic(err)
 	}
 	changes := createChanges(domain, recordSets)
@@ -148,11 +158,12 @@ func main() {
 			*zone.ResourceRecordSetCount)
 	} else {
 		changeInfo, err := updateRecords(sourceProfile, destProfile, domain, changes)
-		if err != nil {
+		if err != nil || changeInfo == nil {
+			log.Printf("ERROR: Change Info Response Block is nil.  Does the target zone exist in the target profile?\n")
 			panic(err)
 		}
-		log.Printf("%d records in '%s' are copied from %s to %s\n",
+		log.Printf("%d records in '%s' have been copied from %s to %s\n",
 			len(changes), domain, sourceProfile, destProfile)
-		log.Printf("%#v\n", changeInfo)
+		log.Printf("Change Info Response Block: %#v\n", changeInfo)
 	}
 }

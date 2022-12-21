@@ -1,1 +1,3 @@
 dist/
+.vscode/settings.json
+route53copy
