@@ -15,7 +15,7 @@ import (
 
 func connect(profile string) *route53.Route53 {
 	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable, // Must be set to enable
+		SharedConfigState: session.SharedConfigEnable, // Must be set to enable sso profiles.
 		Profile:           profile,
 	})
 
@@ -101,7 +101,7 @@ func updateRecords(sourceProfile, destProfile, domain string, changes []*route53
 		},
 	}
 	resp, err := service.ChangeResourceRecordSets(params)
-	return resp.ChangeInfo, nil
+	return resp.ChangeInfo, err
 }
 
 func main() {
